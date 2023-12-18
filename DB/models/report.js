@@ -10,4 +10,5 @@ const reportSchema = new Schema({
 })
 
 const reportCollection = model("report",reportSchema)
+module.exports = reportCollection
 

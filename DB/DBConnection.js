@@ -1,7 +1,7 @@
 const  Mongoose  = require("mongoose");
 
 const connectionDB = ()=>{
-    Mongoose.connect('mongodb://127.0.0.1:27017/commuity')
+    Mongoose.connect(process.env.DATABASE)
     .then(()=>console.log("connect"))
     .catch(err=> console.log(err))
 }
