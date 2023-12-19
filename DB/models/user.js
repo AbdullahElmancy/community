@@ -1,9 +1,10 @@
 const { Schema, model } = require("mongoose");
 const bcrypt = require("bcrypt")
+const CryptoJS = require("crypto-js");
+
 const userSchema = new Schema({
   userName: {
     type: String,
-    unique: true,
     lowercase: true,
     trim: true,
   },
@@ -41,11 +42,13 @@ const userSchema = new Schema({
   follower: [Schema.Types.ObjectId],
   accountStatus: String,
   pdfLink: String,
+  role : {type:String,default:"user"}
 });
 
-userSchema.pre("save",function(next){
-    bcrypt.hashSync(this.password, parseInt(process.env.SALTROUND));
-    CryptoJS.AES.encrypt(this.phone, KEYCRYPT).toString();
+userSchema.pre("validate",function(next){
+  console.log(this.password);
+    this.password = bcrypt.hashSync(this.password, parseInt(process.env.SALTROUND));
+    this.phone = CryptoJS.AES.encrypt(this.phone, process.env.KEYCRYPT).toString();
     next()
 })
 
