@@ -25,12 +25,12 @@ Community is API Social networking site, you can register and Login, add post or
 |profilePick| Avatar of user.
 |coverPick| Cover the main page of user.
 |socialLinks| Social linkes of user.
-|gallery|: Gallery of user.
-|story|: Story of user.
-|follower|:Follower who is follow page of user.
-|accountStatus|: Account status of user.
-|pdfLink| : Pdf attach.
-|role|: The user role.
+|gallery| Gallery of user.
+|story| Story of user.
+|follower|Follower who is follow page of user.
+|accountStatus| Account status of user.
+|pdfLink|  Pdf attach.
+|role| The user role.
 
 <br/>
 
@@ -59,9 +59,9 @@ Community is API Social networking site, you can register and Login, add post or
 ## Table of Contents
 
 * *[express.js](#-1-expressjs)
-* *[database](#-2-DataBase)
+* *[database](#-2-database)
 * *[middlewares](#-3-middlewares)
-* *[controllers](#-4-controller)
+* *[controllers](#-4-controllers)
 
 <br/>
 
@@ -231,7 +231,7 @@ module.exports = reportCollection
 
 <br/>
 
-## # 3.middlewares
+## # 3. middlewares
 * **valdationFunc**
 It is middle ware function take schema of Joi and validate 
 first loop with key of request body, params and query
@@ -313,7 +313,7 @@ module.exports = authorization
 <br/>
 
 
-## # 4.Controller
+## # 4. Controllers
 
 ### User controllers
 * **signUp**
