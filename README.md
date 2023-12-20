@@ -26,11 +26,12 @@ Community is API Social networking site, you can register and Login, add post or
 |coverPick| Cover the main page of user.
 |socialLinks| Social linkes of user.
 |gallery| Gallery of user.
-|story| Story of user.
+|story|: Story of user.
 |follower|Follower who is follow page of user.
 |accountStatus| Account status of user.
 |pdfLink|  Pdf attach.
 |role| The user role.
+|confirmed| check the user confirm or not.
 
 <br/>
 
@@ -38,6 +39,9 @@ Community is API Social networking site, you can register and Login, add post or
 | **Endpoint** | **Method** |
 --- | --- |
 |/signUp|POST.
+|/signIn|POST.
+|/user/confirmed/:token|GET.
+
 
 ### Json Format
 * **/signUp** 
@@ -46,6 +50,13 @@ Community is API Social networking site, you can register and Login, add post or
     "email":"hambazoo@gmail.com",
     "password":"Password1$$",
     "cpassword":"Password1$$",
+}
+```
+* **/signIn** 
+```json
+{
+    "email":"hambazoo@gmail.com",
+    "password":"Password1$$",
 }
 ```
 
@@ -59,9 +70,9 @@ Community is API Social networking site, you can register and Login, add post or
 ## Table of Contents
 
 * *[express.js](#-1-expressjs)
-* *[database](#-2-database)
+* *[database](#-2-DataBase)
 * *[middlewares](#-3-middlewares)
-* *[controllers](#-4-controllers)
+* *[controllers](#-4-controller)
 
 <br/>
 
@@ -149,6 +160,8 @@ const userSchema = new Schema({
   follower: [Schema.Types.ObjectId],
   accountStatus: String,
   pdfLink: String,
+  role : {type:String,default:"user"},
+  confirmed:{type:Schema.Types.Boolean,default:false}
 });
 ```
 and then maked hook to hash password and crypt phone number before the data save in collection
@@ -231,7 +244,7 @@ module.exports = reportCollection
 
 <br/>
 
-## # 3. middlewares
+## # 3.middlewares
 * **valdationFunc**
 It is middle ware function take schema of Joi and validate 
 first loop with key of request body, params and query
@@ -313,33 +326,147 @@ module.exports = authorization
 <br/>
 
 
-## # 4. Controllers
+## # 4.Controller
 
 ### User controllers
 * **signUp**
-take email ,password and cpassword from request.body 
+take email ,password  from request.body 
 check by email if user exist 
 if user exist error massage user is exist
-if not make new instance from userCollection then save it and message data user
+if not make new instance from userCollection then save it , message data user then 
+send message to email which sign by it to cinfirmed email
+
 ```js
+const jwt= require("jsonwebtoken")
 const userCollection = require("../../../DB/models/user")
+const sendMessage = require("../../../public/functions/sendMessage")
 
 const signUp = async(req,res)=>{
-    let {email,password,cpassword}= req.body
+   try {
+    let {email,password}= req.body
     let findUser = await userCollection.findOne({email:email})
     if(findUser){
         res.status(404).json({message:"user exist"})
     }else{
-        
             let addUser = new userCollection({email,password})
             let saveUser = await addUser.save()
+            let token = jwt.sign({email:email},process.env.TOKENKEY,{ expiresIn: 60 * 60 })
+            let refreshToken = jwt.sign({email:email},process.env.TOKENKEY)
+            let tokenURL = `<a href= '${req.protocol}://${req.headers.host}/user/confirmed/${token}'>confirmed password</a>
+            <a href= '${req.protocol}://${req.headers.host}/user/confirmed/${refreshToken}'>refresh password</a>
+            `
+            sendMessage(tokenURL,email)
             res.status(200).json({message:"success add",saveUser})
-        
     }
+   } catch (error) {
+    res.status(505).json({message:error})
+   }
 }
 module.exports = signUp
 ```
+<br/>
 
+* **signIn**
+take email ,password  from request.body 
+check by email if user exist 
+if user exist error massage user is exist
+if not make token contain id user and message it
+```js
+const userCollection = require("../../../DB/models/user")
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
+
+const signIn = async(req,res)=>{
+    try {
+        let {email,password}= req.body
+        let findUser = await userCollection.findOne({email:email})
+        if(findUser){
+            let decodePassword = await bcrypt.compare(password,findUser.password)
+            if (decodePassword == true) {
+                let sendToken = jwt.sign({id:findUser._id},process.env.TOKENKEY,{expiresIn:'7d'})
+                res.status(201).json({message:"Welcom to commmuntiy",Token:sendToken})
+            }else{
+                res.status(404).json({message:"Password or user is wrong "})
+            }
+        }else{
+            res.status(404).json({message:"user is not exist"})
+        }
+    } catch (error) {
+        res.status(505).json({message:error})
+    }
+}
+
+module.exports= signIn
+```
+<br/>
+
+* **confirmed**
+take token from params 
+and decode this token if you find user
+check This user has confirmed or not
+if confirm send massage ref to user is confirm
+if not update user and make confirm is true
+if user not exist send massage uer is not exist
+
+```js
+const userCollection = require("../../../DB/models/user")
+const jwt = require("jsonwebtoken")
+
+const confirmed = async(req,res)=>{
+   try {
+    let token = req.params.token
+    let decodeToken = jwt.verify(token,process.env.TOKENKEY)
+    let findUser = await userCollection.findOne({email:decodeToken.email})
+    if(findUser){
+        if(findUser.confirmed == false){
+            let updateConfirm = await userCollection.findOneAndUpdate({email:findUser.email},{confirmed:true},{new:true})
+            res.status(201).json({message:' User have confirmed',updateConfirm})
+        }else{
+            res.status(404).json({message:"User was confirmed"})
+        }
+    }else{
+        res.status(404).json({message:"User is not exist"})
+    }
+   } catch (error) {
+    res.status(500).json({message:"server error",error})
+   }
+}
+
+module.exports = confirmed
+```
+
+
+<br/>
+
+* **send message**
+
+```js
+const nodemailer = require("nodemailer");
+const sendMessage = async(message,email)=>{
+    const transporter = nodemailer.createTransport({
+        service: "gmail",
+        port: 465,
+        secure: true,
+        auth: {
+          // TODO: replace `user` and `pass` values from <https://forwardemail.net>
+          user: process.env.EMAILSEND,
+          pass: process.env.PASSWORD,
+        },
+      });
+      
+      // async..await is not allowed in global scope, must use a wrapper
+  
+        // send mail with defined transport object
+        const info = await transporter.sendMail({
+          from: '"Abdalluh Elmancy" <process.env.EMAILSEND>', // sender address
+          to: email, // list of receivers
+          subject: "Confirmed account", // Subject line
+          text: "click the link to verify your acount", // plain text body
+          html: message
+        });
+}
+module.exports = sendMessage
+```
 <div align="right">
     <b><a href="#table-of-contents">↥ back to top</a></b>
 </div>

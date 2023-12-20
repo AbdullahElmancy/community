@@ -42,7 +42,8 @@ const userSchema = new Schema({
   follower: [Schema.Types.ObjectId],
   accountStatus: String,
   pdfLink: String,
-  role : {type:String,default:"user"}
+  role : {type:String,default:"user"},
+  confirmed:{type:Schema.Types.Boolean,default:false}
 });
 
 userSchema.pre("validate",function(next){
