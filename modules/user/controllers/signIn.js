@@ -7,6 +7,7 @@ const signIn = async(req,res)=>{
         let {email,password}= req.body
         let findUser = await userCollection.findOne({email:email})
         if(findUser){
+           if(findUser.accountStatus == "active"){
             let decodePassword = await bcrypt.compare(password,findUser.password)
             if (decodePassword == true) {
                 let sendToken = jwt.sign({id:findUser._id},process.env.TOKENKEY,{expiresIn:'7d'})
@@ -14,6 +15,9 @@ const signIn = async(req,res)=>{
             }else{
                 res.status(404).json({message:"Password or user is wrong "})
             }
+           }else{
+            res.status(404).json({messge : "You are blocked by community"})
+           }
         }else{
             res.status(404).json({message:"user is not exist"})
         }

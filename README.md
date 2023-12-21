@@ -1,13 +1,13 @@
 # Community
 Community is API Social networking site, you can register and Login, add post or comment, delete post or comment, modify post or comment and reply comment. And to apply what I’m learn, I make this app Start with create server act as http and connection with database (MongoDB) by using mongoose then use hashing to hash password using bycyrbt package from NPM manager and crypt.js   to decode the phone number and how to deal with modules then make end point and make middleware to validation by using Joi, authorization ,using JWT to make decode to id to send him to header to allow you to make add or access to some end point ,end with sending email and add image by single or multiple and verify email of the user then how to upload this project to git hub and deal with deployment.Finaly this abbreviation and there are many details inside project 
-<br/>
+</br>
 
 ## API Documentation
 * *[user](#-1-user)
 * *[post](#-2-post)
 * *[report](#-3-report)
 
-<br/>
+</br>
 
 ## # 1. user
 
@@ -21,7 +21,6 @@ Community is API Social networking site, you can register and Login, add post or
 |phone|The phone number of user.
 |age| The age of user.
 |gender|The gender of user.
-|shareProfileLink| Profile link of user.
 |profilePick| Avatar of user.
 |coverPick| Cover the main page of user.
 |socialLinks| Social linkes of user.
@@ -33,7 +32,7 @@ Community is API Social networking site, you can register and Login, add post or
 |role| The user role.
 |confirmed| check the user confirm or not.
 
-<br/>
+</br>
 
 ### Users End Point
 | **Endpoint** | **Method** |
@@ -41,6 +40,8 @@ Community is API Social networking site, you can register and Login, add post or
 |/signUp|POST.
 |/signIn|POST.
 |/user/confirmed/:token|GET.
+|/user/configration|PATCH.
+|/admin/changeStatus/|POST.
 
 
 ### Json Format
@@ -60,6 +61,26 @@ Community is API Social networking site, you can register and Login, add post or
 }
 ```
 
+* **user/configration**
+```json
+{
+    "userName":"abdallah",
+    "phone":"01007089283",
+    "age":22,
+    "gender":"male",
+    "socialLinks":["https://www.facebook.com","https://www.x.com","https://www.instgram.com"]
+}
+```
+
+* **admin/changeStatus/**
+```json
+{
+    "id":"6583dfe401488b0d88d88fd3",
+    "accountStatus":"block"
+}
+```
+
+
 
 
 <div align="right">
@@ -74,7 +95,7 @@ Community is API Social networking site, you can register and Login, add post or
 * *[middlewares](#-3-middlewares)
 * *[controllers](#-4-controller)
 
-<br/>
+</br>
 
 ## # 1. Expressjs
 Express.js is framework for node Without Express JS, you must write your own code to create a routing component, which is time-consuming and labor-intensive. ExpressJS provides programmers with simplicity, flexibility, efficiency, minimalism, and scalability
@@ -98,7 +119,7 @@ app.listen(portListen,()=> console.log("work"))
     <b><a href="#table-of-contents">↥ back to top</a></b>
 </div>
 
-<br/>
+</br>
 
 ## # 2.DataBase
 I used NO-SQL Databse (mongooDB) by using mongoose package 
@@ -141,16 +162,34 @@ const bcrypt = require("bcrypt")
 const CryptoJS = require("crypto-js");
 
 const userSchema = new Schema({
-  userName: {type: String,lowercase: true,trim: true},
-  email: {type: String,unique: true,required: true,lowercase: true,trim: true},
-  password: {type: String,required: true,},
+  userName: {
+    type: String,
+    trim: true
+  },
+  email: {
+    type: String,
+    unique: true,
+    required: true,
+    lowercase: true,
+    trim: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
   phone: String,
-  age: {type: Number,min: 18,max: 65,},
-  gender: {type: String,default: "male",},
-  shareProfileLink: String,
+  age: {
+    type: Number,
+    min: 18,
+    max: 65,
+  },
+  gender: {
+    type: String,
+    default: "male",
+  },
   profilePick: String,
   coverPick: [String],
-  socialLinks: [{ String }],
+  socialLinks: [ String ],
   gallery: Array,
   story: {
     text: { type: String, min: 100 },
@@ -158,7 +197,7 @@ const userSchema = new Schema({
     likes: { type: [Schema.Types.ObjectId] },
   },
   follower: [Schema.Types.ObjectId],
-  accountStatus: String,
+  accountStatus: {type:String,default:"active"},
   pdfLink: String,
   role : {type:String,default:"user"},
   confirmed:{type:Schema.Types.Boolean,default:false}
@@ -242,7 +281,7 @@ module.exports = reportCollection
     <b><a href="#table-of-contents">↥ back to top</a></b>
 </div>
 
-<br/>
+</br>
 
 ## # 3.middlewares
 * **valdationFunc**
@@ -276,7 +315,7 @@ const validationFunc = (schema)=>{
 
 module.exports = validationFunc
 ```
-<br/>
+</br>
 
 * **authntication**
 send end point contain role how can access to this route
@@ -288,42 +327,76 @@ if role how is sent equl role of user then next
 else error not permition
 
 ```js
-var jwt = require('jsonwebtoken');
-const userCollection = require('../DB/models/user');
+const userCollection = require("../DB/models/user");
+let jwt = require("jsonwebtoken");
 
-const authorization = (roleUser)=>{
-  try {
-    return async(req,res,next)=>{
-        let authorithationToken = req.headers["authorization"]
-        if(!authorithationToken || !authorithationToken.startswith("Bearer")){
-            res.status(404).json({message:"invallid token"})
-        }else{
-            let token = authorithationToken.slice(7)
-            let {id} = jwt.verify(token, process.env.SECRETJWT);
-            let user = await userCollection.findById(id).select("-password")
-            if(!user){
-                res.status(404).json({message:"user is nont exist"})
-            }else{
-                req.user = user
-                if(roleUser.includes(user.role)){
-                    next()
-                }else{
-                    res.status(404).json({message:"you not allow to access"})
+const authorization = (roleUser) => {
+  return async (req, res, next) => {
+    try {
+      let authorithationToken = req.headers["authorization"];
+      if (!authorithationToken || !authorithationToken.startsWith("Bearer")) {
+        res.status(404).json({ message: "invallid token" });
+      } else {
+        let token = authorithationToken.split(" ")[1];
+        jwt.verify(token, process.env.TOKENKEY, async function (err, decode) {
+          if (err) {
+            res
+              .status(404)
+              .json({ message: " This is not correct token", err });
+          } else {
+            let user = await userCollection
+              .findById(decode.id)
+              .select("-password");
+            if (!user) {
+              res.status(404).json({ message: "user is nont exist" });
+            } else {
+              if (user.accountStatus == "active") {
+                req.user = user;
+                if (roleUser.includes(user.role)) {
+                  next();
+                } else {
+                  res.status(404).json({ message: "you not allow to access" });
                 }
-            }        
-        }
+              } else {
+                res
+                  .status(404)
+                  .json({ messge: "You are blocked by community" });
+              }
+            }
+          }
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "server error" });
     }
-  } catch (error) {
-    res.json({message:"server error",error})
-  }
-}
-module.exports = authorization
+  };
+};
+module.exports = authorization;
+
 ```
+
+</br>
+
+* **Cors**
+Middleware function that allaw cors option to recieve data from him 
+
+First I make opject module allaw to all this in test stage only
+```js
+const corsOptional ={
+    origin: "*",
+    optionsSuccessStatus
+}
+
+module.exports = corsOptional
+```
+
+then I call function call in app js has parmeter corsOptional
+
 <div align="right">
     <b><a href="#table-of-contents">↥ back to top</a></b>
 </div>
 
-<br/>
+</br>
 
 
 ## # 4.Controller
@@ -364,13 +437,15 @@ const signUp = async(req,res)=>{
 }
 module.exports = signUp
 ```
-<br/>
+</br>
 
 * **signIn**
 take email ,password  from request.body 
 check by email if user exist 
 if user exist error massage user is exist
-if not make token contain id user and message it
+if not  check user if active or not
+if make token contain id user and message it
+
 ```js
 const userCollection = require("../../../DB/models/user")
 const jwt = require("jsonwebtoken")
@@ -381,6 +456,7 @@ const signIn = async(req,res)=>{
         let {email,password}= req.body
         let findUser = await userCollection.findOne({email:email})
         if(findUser){
+           if(findUser.accountStatus == "active"){
             let decodePassword = await bcrypt.compare(password,findUser.password)
             if (decodePassword == true) {
                 let sendToken = jwt.sign({id:findUser._id},process.env.TOKENKEY,{expiresIn:'7d'})
@@ -388,6 +464,9 @@ const signIn = async(req,res)=>{
             }else{
                 res.status(404).json({message:"Password or user is wrong "})
             }
+           }else{
+            res.status(404).json({messge : "You are blocked by community"})
+           }
         }else{
             res.status(404).json({message:"user is not exist"})
         }
@@ -398,7 +477,7 @@ const signIn = async(req,res)=>{
 
 module.exports= signIn
 ```
-<br/>
+</br>
 
 * **confirmed**
 take token from params 
@@ -436,9 +515,9 @@ module.exports = confirmed
 ```
 
 
-<br/>
+</br>
 
-* **send message**
+* **sendMessage**
 
 ```js
 const nodemailer = require("nodemailer");
@@ -467,8 +546,48 @@ const sendMessage = async(message,email)=>{
 }
 module.exports = sendMessage
 ```
+</br>
+
+* **accountStatus**
+I taked id and account status and update status 
+```js
+const userCollection = require("../../../DB/models/user")
+
+const accountStatusF = async(req,res)=>{
+    try {
+        let {id,accountStatus} = req.body
+        await userCollection.findByIdAndUpdate(id,{accountStatus})
+        res.status(200).json({message:"Account status update"})
+    } catch (error) {
+        res.status(500).json({message:"server error"})
+    }
+}
+module.exports = accountStatusF
+```
+
+</br>
+
+* **configration**
+I take userName ,phone ,age ,gender and socialLinks
+then find the user by id take from authroiztion middle ware then update 
+
+```js
+const userCollection = require("../../../DB/models/user")
+const configrationUSer =async(req,res)=>{
+    try {
+        let {userName,phone,age,gender,socialLinks} = req.body
+        await userCollection.findByIdAndUpdate(req.user._id,{userName,phone,age,gender,socialLinks})
+        res.status(201).json({message:"successful update"})
+    
+    } catch (error) {
+        res.status(500).json({message:"server error"})
+    }
+}
+module.exports = configrationUSer
+```
+
 <div align="right">
     <b><a href="#table-of-contents">↥ back to top</a></b>
 </div>
 
-<br/>
+</br>
