@@ -17,7 +17,7 @@ const sendMessage = async(message,email)=>{
         const info = await transporter.sendMail({
           from: '"Abdalluh Elmancy" <process.env.EMAILSEND>', // sender address
           to: email, // list of receivers
-          subject: "Confirmed account", // Subject line
+          subject: "Message from community", // Subject line
           text: "click the link to verify your acount", // plain text body
           html: message
         });

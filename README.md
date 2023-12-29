@@ -25,7 +25,7 @@ Community is API Social networking site, you can register and Login, add post or
 |coverPick| Cover the main page of user.
 |socialLinks| Social linkes of user.
 |gallery| Gallery of user.
-|story|: Story of user.
+|story| Story of user.
 |follower|Follower who is follow page of user.
 |accountStatus| Account status of user.
 |pdfLink|  Pdf attach.
@@ -42,13 +42,18 @@ Community is API Social networking site, you can register and Login, add post or
 |/user/confirmed/:token|GET.
 |/user/configration|PATCH.
 |/admin/changeStatus/|POST.
-
+|/user/follow/:id|PATCH.
+|/user/profilePic|PATCH.
+|/user/coverPick|PATCH.
+|/user/gallery|PATCH.
+|/user/story|PATCH.
+|/user/likeStory/:id|PATCH.
 
 ### Json Format
 * **/signUp** 
 ```json
 {
-    "email":"hambazoo@gmail.com",
+    "email":"Elmancy@gmail.com",
     "password":"Password1$$",
     "cpassword":"Password1$$",
 }
@@ -56,9 +61,14 @@ Community is API Social networking site, you can register and Login, add post or
 * **/signIn** 
 ```json
 {
-    "email":"hambazoo@gmail.com",
+    "email":"Elmancy@gmail.com",
     "password":"Password1$$",
 }
+```
+
+* **/user/story**
+```json
+  "text":"This story is nice"
 ```
 
 * **user/configration**
@@ -82,10 +92,94 @@ Community is API Social networking site, you can register and Login, add post or
 
 
 
+<div align="right">
+    <b><a href="#API-Documentation">↥ back to top</a></b>
+</div>
+
+</br>
+
+## # 2. post
+
+### postModel
+| **Property** | **description** |
+--- | --- |
+|_id| Primary key.
+|title|Title of the post.
+|description| Description of the post.
+|images| Pictures link with the post.
+|tags| array of tag some people.
+|like| refer to how like the post
+|comment| nested schema inside post.
+
+### commentSchema
+| **Property** | **description** |
+--- | --- |
+|_id| Primary key.
+|description| Description of the post.
+|tags| array of tag some people.
+|like| refer to how like the post
+|reply| nested schema inside post.
+
+### replySchema
+| **Property** | **description** |
+--- | --- |
+|_id| Primary key.
+|description| Description of the post.
+|tags| array of tag some people.
+|like| refer to how like the post
+
+### post End Point
+| **Endpoint** | **Method** |
+--- | --- |
+|/post/addPost|POST.
+|/post/deletePost/:id|DELETE.
+|/post/updatePost/:id|Patch.
+|/post/like/:id|Patch.
+|/post/getAllpost|GET.
+|/user/getAllpost|GET.
+|/comment/addcomment|POST.
+
+ </br>
+
+### Json Format
+* **post/addPost**
+![add post form data example.](./ImageGitHub/addpost.png)
+
+* **post/deletePost**
+```js
+"http://localhost:3000/post/deletePost/6589d6a919eb0ec63ce5a666"
+```
+* **post/updatePost**
+```js
+"http://localhost:3000/post/updatePost/6589db9438b77b33b5184c7f"
+```
+![update post form data example.](./ImageGitHub/updateData.png)
+
+* **post/like**
+```js
+"http://localhost:3000/post/like/658b15aebf77e583bcd777ef"
+```
+
+* **comment/addComment**
+```json
+{
+    "idPost":"658b15aebf77e583bcd777ef",
+    "description":"hello from comment 22",
+    "tags":["6583e984e746f893f130e6f9"]
+}
+```
+
+
+
+
+
+
 
 <div align="right">
     <b><a href="#API-Documentation">↥ back to top</a></b>
 </div>
+
+</>
 
 
 ## Table of Contents
@@ -121,7 +215,7 @@ app.listen(portListen,()=> console.log("work"))
 
 </br>
 
-## # 2.DataBase
+## # 2. DataBase
 I used NO-SQL Databse (mongooDB) by using mongoose package 
 
 first I maked module of method to connect DataBase
@@ -399,7 +493,7 @@ then I call function call in app js has parmeter corsOptional
 </br>
 
 
-## # 4.Controller
+## # 4. Controller
 
 ### User controllers
 * **signUp**
@@ -584,6 +678,516 @@ const configrationUSer =async(req,res)=>{
     }
 }
 module.exports = configrationUSer
+```
+
+</br>
+
+* **followers**
+I Take Id user who will follow it from params
+then check user exist or not
+if user exist ,I will check if that user is active or not 
+if active I will push myid (user id) to user if actually you follow will massage you follow this us
+if this user is nont active I will give massage user is block
+if user is not exist , I will give massage user is not exist
+```js
+const userCollection = require("../../../DB/models/user");
+
+const followers = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const findUser = await userCollection.findById(id);
+    if (findUser) {
+      if (findUser.accountStatus == "active") {
+        let checkUserFollow = findUser.follower.find(
+          (ele) => ele.toString() == req.user._id
+        );
+        if (checkUserFollow == undefined) {
+          findUser.follower.push(req.user._id);
+          await userCollection.findByIdAndUpdate(id, {
+            follower: findUser.follower,
+          });
+          res.status(201).json({ message: "successful follow" });
+        } else {
+          res.status(404).json({ message: "You followed this user" });
+        }
+      } else {
+        res.status(404).json({ message: " This user is blocked" });
+      }
+    } else {
+      res.status(404).json({ message: " This user is not exist" });
+    }
+  } catch (error) {
+    res.status(404).json({ message: "Server error", error });
+  }
+};
+
+module.exports = followers;
+
+```
+</br>
+
+* **profilePick**
+
+I check file exist update profile Image
+if file not exist will give massge Avatr is not exist
+```js
+const userCollection = require("../../../DB/models/user")
+const profilePick = async(req,res)=>{ 
+      try {
+        if(req.file){
+            const imageURL =`${req.protocol}://${req.headers.host}/${req.file.path}`
+            const updateImage = await userCollection.findByIdAndUpdate(req.user._id,{profilePick:imageURL},{new:true})
+            res.status(200).json({message:"Profile picture update",image: updateImage.profilePick})
+    
+        }else{
+            res.status(404).json({message:"Avatr is not exist"})
+        }
+      } catch (error) {
+        res.status(505).json({message:"Server error",error})
+      }
+}
+```
+</br>
+
+* **coverPick**
+check if files exist loop with file to create url image and update coverPic
+if files not exis will give cover is not exist
+```js
+const coverPick = async(req,res)=>{   
+try {
+    if(req.files){
+        let allPick =[]
+        for (let index = 0; index < req.files.length; index++) {
+            let imageURL =`${req.protocol}://${req.headers.host}/${req.files[index].path}`
+            allPick.push(imageURL)
+         }
+        const updateImage = await userCollection.findByIdAndUpdate(req.user._id,{coverPick:allPick},{new:true})
+        res.status(200).json({message:"Profile cover pictures update",image: updateImage.coverPick})
+
+    }else{
+        res.status(404).json({message:"cover is not exist"})
+    }
+} catch (error) {
+    res.status(505).json({message:"Server error",error})
+}
+}
+```
+</br>
+
+* **gallery**
+
+check if files exist loop with file to create url image and push to user coverPic
+then update this user if not gallery is not exist
+```js
+const userCollection = require("../../../DB/models/user")
+const gallery = async(req,res)=>{   
+   try {
+    if(req.files){     
+        for (let index = 0; index < req.files.length; index++) {
+            let imageURL =`${req.protocol}://${req.headers.host}/${req.files[index].path}`
+            req.user.gallery.push(imageURL)
+         }
+        const updateImage = await userCollection.findByIdAndUpdate(req.user._id,{gallery:req.user.gallery},{new:true})
+        res.status(200).json({message:"gallery pictures update",image: updateImage.gallery})
+
+    }else{
+        res.status(404).json({message:"gallery is not exist"})
+    }
+   } catch (error) {
+    res.status(505).json({message:"Server error",error})
+   }
+}
+
+module.exports = gallery
+```
+</br>
+
+* **story**
+story may be text or image 
+when image check ther is file 
+if file exist will update file
+if not check the is text if text will update
+if not will give massge invlid user
+```js
+const userCollection = require("../../../DB/models/user");
+
+const story = async (req, res) => {
+  try {
+    if (req.file != undefined) {
+      const imageURL = `${req.protocol}://${req.headers.host}/${req.file.path}`;
+      if (!req.user.story) {
+        let objectStory = {
+          image: imageURL,
+        };
+        const updateImage = await userCollection.findByIdAndUpdate(
+          req.user._id,
+          { story: objectStory },
+          { new: true }
+        );
+        res
+          .status(200)
+          .json({ message: "story update", image: updateImage.story });
+      } else {
+        req.user.story.image = imageURL;
+        const updateImage = await userCollection.findByIdAndUpdate(
+          req.user._id,
+          { story: req.user.story },
+          { new: true }
+        );
+        res
+          .status(200)
+          .json({ message: "story update", image: updateImage.story });
+      }
+    } else if (req.body.text) {
+      const { text } = req.body;
+      if (!req.user.story) {
+        let objectStory = {
+          text: text,
+        };
+        const updateText = await userCollection.findByIdAndUpdate(
+          req.user._id,
+          { story: objectStory },
+          { new: true }
+        );
+        res
+          .status(200)
+          .json({ message: "story update", text: updateText.story });
+      } else {
+        req.user.story.text = text;
+        const updateText = await userCollection.findByIdAndUpdate(
+          req.user._id,
+          { story: req.user.story },
+          { new: true }
+        );
+        res
+          .status(200)
+          .json({ message: "story update", text: updateText.story });
+      }
+    } else {
+      res.status(404).json("invalid story");
+    }
+  } catch (error) {
+    res.status(505).json({message:"Server error",error})
+  }
+};
+module.exports = story;
+
+```
+</br>
+
+* **likeStory**
+
+I Take id user params who have story
+then check user is exist or not exist
+if exist check the story if exist or not
+if exist story ckeck id you like it befor or not
+st
+```js
+const userCollection = require("../../../DB/models/user");
+
+const likeStory = async(req,res)=>{
+   try {
+    let {id} = req.params
+    let findUser = await userCollection.findById(id)
+    if(findUser){
+        if(findUser.story){
+            if (findUser.story.likes.includes(req.user._id)) {
+                res.status(404).json({message:"You liked this story before"})
+            }else{
+                findUser.story.likes.push(req.user._id)
+                let updateLike = await userCollection.findByIdAndUpdate(id,{story:findUser.story},{new:true})
+                res.status(201).json({message:"User liked this story",story: updateLike.story})
+            }
+           
+        }else{
+            res.status(404).json({message:"That is not story"})
+        }
+    }else{
+        res.status(404).json({message:" user is not exist"})
+    }
+   } catch (error) {
+    res.status(505).json({message:"Server error",error})
+
+   }
+}
+module.exports = likeStory
+```
+
+
+<div align="right">
+    <b><a href="#table-of-contents">↥ back to top</a></b>
+</div>
+
+</br>
+
+### post Controller
+
+* **addpost**
+
+First take request from body (form-data)
+if I find files ,I loop this file and make url of wach file
+and push them in array all pick
+then if post have tags ,I loop with this tags to find user exist or not if valid
+will push it in array valid tags and fill tag email who user is send wmail 
+to make his know that some one tag him.
+then call function sendEmails and fill it and create po
+
+```js
+const postCollection = require("../../../DB/models/post");
+const userCollection = require("../../../DB/models/user");
+const sendMessage = require("../../../public/functions/sendMessage");
+
+const addPost = async(req,res)=>{
+try {
+    let {title,description,tags}= req.body
+    let allPic = []
+    let validTags = []
+    let tagEmail = ""
+    
+    if(req.files){
+        for (let index = 0; index < req.files.length; index++) {
+            let imageURL = `${req.protocol}://${req.headers.host}/${req.files[index].path}`
+            allPic.push(imageURL)
+        }
+    }
+    if(tags.length != 0){
+        for (let index = 0; index < tags.length; index++) {
+            let findUser = await userCollection.findById(tags[index])
+            if(findUser){
+                validTags.push(tags[index])
+                if(validTags){
+                    tagEmail += tagEmail + ", " + findUser.email
+                }else{
+                    tagEmail = findUser.email
+                }
+            }
+        }
+    }
+
+    sendMessage(` You tage by ${req.user.email}`,tagEmail)
+    let addPost = new postCollection({title,description,tags:validTags,userID:req.user._id,images:allPic})
+    let savePost = await addPost.save()
+    res.status(200).json({message:"post successful",savePost})
+} catch (error) {
+    res.status(505).json({message:"server error"})
+}
+}
+
+module.exports = addPost
+```
+</br>
+
+* **deletePost**
+Take id of post which its delete in params
+then check if post is exxist or not
+if exist will will check if user id who will delete
+the post the same with create this post
+if yes will delte post.
+```js
+const postCollection = require("../../../DB/models/post")
+
+const deletePost = async(req,res)=>{
+  try {
+    let {id} = req.params
+    let findPost = await postCollection.findById(id)
+    if(findPost){
+        if(findPost.userID.toString() == req.user._id){
+            await postCollection.deleteOne({_id:id})
+            res.status(200).json({message:"The post has been successfully deleted"})
+        }else{
+            res.status(404).json({message:"you don't allow delte this post"})
+        }
+    }else{
+        res.status(404).json({message:"post isn't exist"})
+    }
+  } catch (error) {
+    res.status(505).json({message:"server error",error})
+  }
+}
+module.exports = deletePost
+```
+
+</br>
+
+* **updatePost**
+take post id from params 
+check post is exist or not
+if exist check files exist or not
+if files will loop in it and make url and push them in array
+and update post
+if files not update post without files
+```js
+const postCollection = require("../../../DB/models/post");
+
+const updatePost = async(req,res)=>{
+try {
+    let {id} = req.params
+    let findPost = await postCollection.findById(id)
+    if(findPost){
+        if(findPost.userID.toString() == req.user._id){
+            let updateOldPost;
+            let {title,description}= req.body
+            let allPic = []
+            if(req.files.length > 0){
+                for (let index = 0; index < req.files.length; index++) {
+                    let imageURL = `${req.protocol}://${req.headers.host}/${req.files[index].path}`
+                    allPic.push(imageURL)
+                }
+                updateOldPost = await postCollection.findByIdAndUpdate(id,{title,description,images:allPic},{new:true})
+            }else{
+                updateOldPost = await postCollection.findByIdAndUpdate(id,{title,description},{new:true})
+            }
+            res.status(200).json({message:"post has been update",updateOldPost})
+        }else{
+            res.status(404).json({message:"you don't allow delte this post"})
+        }
+    }else{
+        res.status(404).json({message:"post isn't exist"})
+    }
+} catch (error) {
+    res.status(505).json({message:"server error"})
+}
+}
+
+module.exports = updatePost
+```
+</br>
+
+* **likePost**
+take post id from params
+check if post is exist or not
+if exist check if this user is like to this post or not
+if not push id user and update like from post model
+```js
+const postCollection = require("../../../DB/models/post");
+
+const likePost  = async(req,res)=>{
+   try {
+    let {id} = req.params
+    let findPost = await postCollection.findOne({_id:id})
+    if(findPost){
+        if(findPost.like.includes(req.user._id)){
+            res.status(404).json({message:"You liked it before"})
+        }else{
+            findPost.like.push(req.user._id)
+            let updatePost = await postCollection.findByIdAndUpdate(id,{like:findPost.like},{new:true})
+            res.status(200).json({message:"successfull like",updatePost})
+        }
+    }else{
+        res.status(404).json({message:"post not exist"})
+    }
+   } catch (error) {
+    res.status(505).json({message:"Server error",error})
+   }
+}
+module.exports = likePost
+```
+</br>
+
+* **getAllPost**
+Here we make pagination by take page and limit from query
+and return specfic number of post
+```js
+const postCollection = require("../../../DB/models/post");
+
+const getAllPost = async(req,res)=>{
+try {
+    let {page,limit}= req.query
+    if(!page){
+        page = 1
+    }
+    if(!limit){
+        limit = 4
+    }
+    let skipItem = (page -1) * limit
+    let findPost = await postCollection.find({}).select("-password").limit(limit).skip(skipItem)
+    res.status(200).json({message:"allPost",findPost})
+} catch (error) {
+    res.status(505).json({message:"Server error",error})
+}
+
+}
+module.exports = getAllPost
+```
+
+</br>
+
+* **getUserPost**
+Here get all user post
+```js
+const postCollection = require("../../../DB/models/post");
+
+const getUserPosts = async(req,res)=>{
+try {
+    let {page,limit}= req.query
+    if(!page){
+        page = 1
+    }
+    if(!limit){
+        limit = 4
+    }
+    let skipItem = (page -1) * limit
+    let findPost = await postCollection.find({userID:req.user._id}).select("-password").limit(limit).skip(skipItem)
+    res.status(200).json({message:"allPost",findPost})
+} catch (error) {
+    res.status(505).json({message:"Server error",error})
+}
+
+}
+module.exports = getUserPosts
+```
+<div align="right">
+    <b><a href="#table-of-contents">↥ back to top</a></b>
+</div>
+
+</br>
+
+### comment Controller
+* **addComment**
+take request from body
+check post is exist by id which send by id in body
+if exist check if comment have tag 
+if tags loop these tags and check id valid 
+do the same what do in add post
+then create comment
+```js
+const postCollection = require("../../../DB/models/post");
+const userCollection = require("../../../DB/models/user");
+const sendMessage = require("../../../public/functions/sendMessage");
+
+const addComment = async(req,res)=>{
+  try {
+    let {idPost,tags,description} = req.body
+    let findPost = await postCollection.findById(idPost)
+    if(findPost){
+        let validTags = []
+        let tagEmail = ""    
+        if(tags.length != 0){
+            for (let index = 0; index < tags.length; index++) {
+                let findUser = await userCollection.findById(tags[index])
+                if(findUser){   
+                    validTags.push(tags[index])
+                    if(validTags){
+                        tagEmail += tagEmail + ", " + findUser.email
+                    }else{
+                        tagEmail = findUser.email
+                    }
+                }
+            }
+        }
+        sendMessage(` You tage by ${req.user.email}`,tagEmail)
+        findPost.comment.push({description,tags:validTags,userID:req.user._id})
+        let addComment = await postCollection.findByIdAndUpdate(findPost._id,{comment:findPost.comment},{new:true})
+        res.status(201).json({message:"Successful add",addComment})
+    }else{
+        res.status(404).json({message:"Post is not exist"})
+    }
+  } catch (error) {
+    res.status(505).json({message:"server error",error})
+  }
+}
+
+module.exports = addComment
 ```
 
 <div align="right">

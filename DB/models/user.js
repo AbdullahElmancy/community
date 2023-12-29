@@ -33,8 +33,8 @@ const userSchema = new Schema({
   socialLinks: [ String ],
   gallery: Array,
   story: {
-    text: { type: String, min: 100 },
-    image: { type: [String] },
+    text: { type: String, min: 10 },
+    image: { type: String },
     likes: { type: [Schema.Types.ObjectId] },
   },
   follower: [Schema.Types.ObjectId],

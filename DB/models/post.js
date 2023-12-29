@@ -2,41 +2,34 @@ const { Schema, model } = require("mongoose");
 const replySchema = new Schema({
     description:{
         type:String,
-        min:3,
-        required:true
     },
     userID:{type:Schema.Types.ObjectId,required:true},
     tags:[Schema.Types.ObjectId],
     like:[Schema.Types.ObjectId],
 })
-const coomentSchema = new Schema({
+const commentSchema = new Schema({
     description:{
         type:String,
-        min:3,
-        required:true
     },
     userID:{type:Schema.Types.ObjectId,required:true},
     tags:[Schema.Types.ObjectId],
     like:[Schema.Types.ObjectId],
-    reply:replySchema
+    reply:[replySchema]
 })
 
 const postSchema = new Schema({
     title:{
         type:String,
-        min:3,
-        max:32,
         required:true
     },
     description:{
         type:String,
-        min:3,
-        required:true
     },
+    images: [String],
     userID:{type:Schema.Types.ObjectId,required:true},
     tags:[Schema.Types.ObjectId],
     like:[Schema.Types.ObjectId],
-    comment:coomentSchema,
+    comment:[commentSchema],
 
 })
 

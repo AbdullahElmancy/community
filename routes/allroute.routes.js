@@ -1,3 +1,3 @@
 const userRoute = require("../modules/user/userroute.routes")
-
-module.exports = {userRoute}
+const postRoute = require("../modules/post/post.routes")
+module.exports = {userRoute,postRoute}
