@@ -22,7 +22,6 @@ const addComment = async(req,res)=>{
                 }
             }
         }
-        console.log(validTags);
         sendMessage(` You tage by ${req.user.email}`,tagEmail)
         findPost.comment.push({description,tags:validTags,userID:req.user._id})
         let addComment = await postCollection.findByIdAndUpdate(findPost._id,{comment:findPost.comment},{new:true})

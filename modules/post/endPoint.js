@@ -12,6 +12,7 @@ const postEndPoint = {
     addComment:[rolers.User,rolers.HR],
     updateComment:[rolers.User,rolers.HR],
     deleteComment:[rolers.User,rolers.HR,rolers.Admin],
+    getComment:[rolers.User,rolers.HR,rolers.Admin],
     addReply:[rolers.User,rolers.HR],
     updateReply:[rolers.User,rolers.HR],
     deleteReply:[rolers.User,rolers.HR,rolers.Admin],

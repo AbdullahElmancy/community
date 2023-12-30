@@ -138,6 +138,12 @@ Community is API Social networking site, you can register and Login, add post or
 |/post/getAllpost|GET.
 |/user/getAllpost|GET.
 |/comment/addcomment|POST.
+|/comment/deleteComment/:idPost/:idComment|PATCH.
+|/comment/updateComment/:idPost/:idComment|PATCH.
+|/comment/getComment/:idPost|GET.
+|/reply/addReply/:idPost/:idComment|POST.
+|/reply/deleteReply/:idPost/:idComment/:idReply|PATCH.
+|/reply/updateReply/:idPost/:idComment/:idReply|PATCH.
 
  </br>
 
@@ -168,12 +174,51 @@ Community is API Social networking site, you can register and Login, add post or
     "tags":["6583e984e746f893f130e6f9"]
 }
 ```
+* **comment/deleteComment**
+```js
+"http://localhost:3000/comment/deleteComment/658b15aebf77e583bcd777ef/658b2811cded0f0f24616591"
+```
+* **comment/updateComment**
+```js
+"http://localhost:3000/comment/updateComment/658b15aebf77e583bcd777ef/658b2701a3e3e842d00a3f3b"
+```
 
+```json
+{
+    "description":"comment update 30 12"
+}
+```
 
+* **comment/getComment**
+```js
+"http://localhost:3000/comment/getComment/658b15aebf77e583bcd777ef"
+```
 
+* **reply/addReply**
+```js
+"http://localhost:3000/reply/addReply/658b15aebf77e583bcd777ef/658b2701a3e3e842d00a3f3b"
+```
+```json
+{
+    "description":"hello from reply 30 12",
+    "tags":["6583e984e746f893f130e6f9"]
+}
+```
 
+* **reply/deleteReply**
+```js
+"http://localhost:3000/reply/deleteReply/658b15aebf77e583bcd777ef/658b2701a3e3e842d00a3f3b/6590663fb431a8bd7e42ee04"
+```
 
-
+* **reply/updateReply**
+```js
+"http://localhost:3000/reply/updateReply/658b15aebf77e583bcd777ef/658b2701a3e3e842d00a3f3b/65906656b431a8bd7e42ee15"
+```
+```json
+{
+    "description":"update reply 2023 30 12"
+}
+```
 
 <div align="right">
     <b><a href="#API-Documentation">↥ back to top</a></b>
@@ -292,7 +337,6 @@ const userSchema = new Schema({
   },
   follower: [Schema.Types.ObjectId],
   accountStatus: {type:String,default:"active"},
-  pdfLink: String,
   role : {type:String,default:"user"},
   confirmed:{type:Schema.Types.Boolean,default:false}
 });
@@ -1189,7 +1233,290 @@ const addComment = async(req,res)=>{
 
 module.exports = addComment
 ```
+</br>
 
+* **updateComment**
+```js
+const postCollection = require("../../../DB/models/post");
+
+const updateComment = async (req, res) => {
+  try {
+    let { description } = req.body;
+    let { idPost, idComment } = req.params;
+    let findPost = await postCollection.findById(idPost);
+    if (findPost) {
+      let comment = findPost.comment;
+      let flagComment = false;
+      for (let index = 0; index < comment.length; index++) {
+        if (comment[index]._id.toString() === idComment.toString()) {
+          if (req.user._id.toString() === comment[index].userID.toString()) {
+            findPost.comment[index].description = description;
+            await postCollection.findByIdAndUpdate(idPost, {
+              comment: findPost.comment,
+            });
+            res.status(201).json({ massage: "comment updated" });
+            flagComment = true;
+            break;
+          } else {
+            res
+              .status(404)
+              .json({ massage: "You not allow to update this comment" });
+            break;
+          }
+        }
+      }
+      if (flagComment === false) {
+        res.status(404).json("comment is not exist");
+      }
+    } else {
+      res.status(404).json({ message: "Post not exist" });
+    }
+  } catch (error) {
+    res.status(505).json({ message: "Server error", error });
+  }
+};
+
+module.exports = updateComment;
+
+```
+
+</br>
+
+* **deleteComment**
+```js
+const postCollection = require("../../../DB/models/post");
+
+const deleteComment = async(req,res)=>{
+    try {
+        let {idComment,idPost} = req.params
+        let findPost = await postCollection.findById(idPost)
+        if(findPost){
+            let comment = findPost.comment
+            let flagComment = false;
+            for (let index = 0; index < comment.length; index++) {
+                if(comment[index]._id.toString() === idComment.toString() ){
+                    if (req.user._id.toString()  === comment[index].userID.toString()) {
+                        findPost.comment.splice(index,1)
+                        await postCollection.findByIdAndUpdate(idPost,{comment:findPost.comment})
+                        res.status(201).json({massage:"comment Deleted"})
+                        flagComment = true
+                        break
+                    }else{
+                        res.status(404).json({massage:"You not allow to delete this comment"})
+                        break
+                    }
+                   
+                }
+            }
+            if(flagComment === false){
+                res.status(404).json("comment is not exist")
+            }
+    
+        }else{
+            res.status(404).json({message:"Post not exist"})
+        }
+    } catch (error) {
+        res.status(505).json({message:"Server error"})
+    }
+}
+
+module.exports = deleteComment
+```
+</br>
+
+* **getComment**
+```js
+const postCollection = require("../../../DB/models/post")
+
+
+const getComment = async(req,res)=>{
+    try {
+        let {idPost} = req.params
+        let findPost = await postCollection.findById(idPost);
+        if (findPost) {
+            res.status(201).json({massage:":comments",comments:findPost.comment});
+        } else {
+          res.status(404).json({ message: "Post not exist" });
+        }
+    } catch (error) {
+        res.status(505).json({message:"Server error",error})
+    }
+}
+
+module.exports = getComment
+```
+
+
+<div align="right">
+    <b><a href="#table-of-contents">↥ back to top</a></b>
+</div>
+
+</br>
+
+### replyController
+
+* **addReply**
+```js
+const postCollection = require("../../../DB/models/post");
+const userCollection = require("../../../DB/models/user");
+const sendMessage = require("../../../public/functions/sendMessage");
+
+const addReply = async (req, res) => {
+  try {
+    let { idPost, idComment } = req.params;
+    let { tags, description } = req.body;
+    let findPost = await postCollection.findById(idPost);
+    if (findPost) {
+      let comment = findPost.comment;
+      let flagComment = false;
+      for (let index = 0; index < comment.length; index++) {
+        if (comment[index]._id.toString() === idComment.toString()) {
+          let validTags = [];
+          let tagEmail = "";
+          if (tags.length != 0) {
+            for (let index = 0; index < tags.length; index++) {
+              let findUser = await userCollection.findById(tags[index]);
+              if (findUser) {
+                validTags.push(tags[index]);
+                if (validTags) {
+                  tagEmail += tagEmail + ", " + findUser.email;
+                } else {
+                  tagEmail = findUser.email;
+                }
+              }
+            }
+          }
+          sendMessage(` You tage by ${req.user.email}`, tagEmail);
+          findPost.comment[index].reply.push({
+            description,
+            tags: validTags,
+            userID: req.user._id,
+          });
+          let addReply = await postCollection.findByIdAndUpdate(
+            findPost._id,
+            { comment: findPost.comment },
+            { new: true }
+          );
+          res.status(201).json({ message: "Successful add reply", addReply });
+          flagComment = true;
+          break;
+        }
+      }
+      if (flagComment === false) {
+        res.status(404).json("comment is not exist");
+      }
+    } else {
+      res.status(404).json({ message: "Post is not exist" });
+    }
+  } catch (error) {
+    res.status(505).json({ message: "server error", error });
+  }
+};
+
+module.exports = addReply;
+
+```
+</br>
+
+* **deleteReply**
+```js
+const postCollection = require("../../../DB/models/post");
+
+const deleteReply = async (req, res) => {
+  try {
+    let { idPost, idComment,idReply } = req.params;
+    let findPost = await postCollection.findById(idPost);
+    if (findPost) {
+      let comment = findPost.comment;
+      let flagComment = false;
+      let replyFlag = false;
+      for (let index = 0; index < comment.length; index++) {
+        if (comment[index]._id.toString() === idComment.toString()) {
+          flagComment = true
+          for (let replyIndex = 0; replyIndex < comment[index].reply.length; replyIndex++) {
+            if (comment[index].reply[replyIndex]._id.toString() === idReply.toString()) {
+                if (req.user._id.toString()  === comment[index].reply[replyIndex].userID.toString()) {
+                    replyFlag = true
+                    findPost.comment[index].reply.splice(replyIndex,1)
+                    await postCollection.findByIdAndUpdate(idPost,{comment:findPost.comment})
+                    res.status(201).json({massage:"reply Deleted"})
+                    break
+                }else{
+                    res.status(404).json({massage:"You not allow to delete this reply"})
+                    break
+                }
+            }
+          }
+        }
+      }
+      if (flagComment === false) {
+        res.status(404).json("comment is not exist");
+      }
+      if(replyFlag === false){
+        res.status(404).json("reply is not exist");
+      }
+    } else {
+      res.status(404).json({ message: "Post is not exist" });
+    }
+  } catch (error) {
+    res.status(505).json({ message: "server error", error });
+  }
+};
+
+module.exports = deleteReply;
+
+```
+</br>
+
+* **updateReply**
+```js
+const postCollection = require("../../../DB/models/post");
+
+const updateReply = async (req, res) => {
+  try {
+    let { idPost, idComment,idReply } = req.params;
+    let {description} = req.body
+    let findPost = await postCollection.findById(idPost);
+    if (findPost) {
+      let comment = findPost.comment;
+      let flagComment = false;
+      let replyFlag = false;
+      for (let index = 0; index < comment.length; index++) {
+        if (comment[index]._id.toString() === idComment.toString()) {
+          flagComment = true
+          for (let replyIndex = 0; replyIndex < comment[index].reply.length; replyIndex++) {
+            if (comment[index].reply[replyIndex]._id.toString() === idReply.toString()) {
+                if (req.user._id.toString()  === comment[index].reply[replyIndex].userID.toString()) {
+                    replyFlag = true
+                    findPost.comment[index].reply[replyIndex].description = description
+                    await postCollection.findByIdAndUpdate(idPost,{comment:findPost.comment})
+                    res.status(201).json({massage:"reply updated"})
+                    break
+                }else{
+                    res.status(404).json({massage:"You not allow to delete this reply"})
+                    break
+                }
+            }
+          }
+        }
+      }
+      if (flagComment === false) {
+        res.status(404).json("comment is not exist");
+      }
+      if(replyFlag === false){
+        res.status(404).json("reply is not exist");
+      }
+    } else {
+      res.status(404).json({ message: "Post is not exist" });
+    }
+  } catch (error) {
+    res.status(505).json({ message: "server error", error });
+  }
+};
+
+module.exports = updateReply;
+
+```
 <div align="right">
     <b><a href="#table-of-contents">↥ back to top</a></b>
 </div>
